@@ -1,0 +1,67 @@
+{% extends '../landing/base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+<h1>Search Results</h1>
+{% if users %}
+<ul class="list-group">
+  {% for user in users %}
+  <li class="list-group-item d-flex justify-content-between align-items-center">
+    <a class="btn btn-dark" href="/profile/{{user.username}}">{{ user.username }}</a>
+    <form id="follow-form-{{ user.id }}">
+      {% csrf_token %}
+      {% if user.id in following %}
+        <button type="submit" class="btn btn-dark btn-sm" disabled>
+          <i class="fas fa-check"></i> Following
+        </button>
+      {% else %}
+        <button type="submit" class="btn btn-outline-dark btn-sm" onclick="followUser({{ user.id }})">
+          Follow
+        </button>
+      {% endif %}
+    </form>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>No users found.</p>
+{% endif %}
+
+
+</div>
+
+<script>
+  function followUser(userId) {
+    // Make the follow request using AJAX or Fetch
+    // After a successful follow, reload the page
+    // Example using Fetch API:
+    fetch(`/follow_user/${userId}/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken'),  // Get CSRF token
+        'Content-Type': 'application/json',
+      },
+      // Add any request body data if needed
+      // body: JSON.stringify({}),
+    })
+    .then(response => {
+      if (response.status === 201) {
+        // Follow request was successful, reload the page
+        window.location.reload();
+      } else {
+        // Handle error if needed
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+    });
+  }
+
+  // Function to get the CSRF token from cookies
+  function getCookie(name) {
+    var value = "; " + document.cookie;
+    var parts = value.split("; " + name + "=");
+    if (parts.length === 2) return parts.pop().split(";").shift();
+  }
+</script>
+{% endblock %}

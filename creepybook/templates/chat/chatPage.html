@@ -1,0 +1,100 @@
+{% extends 'landing/base.html' %}
+
+{% block content %}
+<body>
+
+    <div class="d-flex align-items-center flex-column pt-5">
+        <div class="p-5 border border-black rounded">
+            <h1>Chats</h1>
+            <div id="user-list">
+                <!-- User list will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const userList = document.getElementById('user-list');
+
+            // Function to handle the button click and create a chat room
+            function handleButtonClick(u) {
+                // Send a POST request to create a chat room
+                console.log('user', u)
+                fetch(`/api/check-create-chat-room/${u}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie("csrftoken"),  // Get the CSRF token from cookies
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ user_id: u }),
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+
+                    return response.json();
+                })
+                .then(data => {
+                console.log(data.id)
+
+                    // Redirect the user to the chat room page
+                    window.location.href = `/chat-room/${data.id}/`;
+                })
+                .catch(error => console.error('Error:', error));
+            }
+
+            fetch('/api/following/')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    data.forEach(user => {
+
+                        const listItem = document.createElement('div');
+                        listItem.innerHTML = `<button class="btn btn-outline-dark m-2" data-user-id="${user.id}">${user.username}</button>`;
+                        const button = listItem.querySelector('button');
+                        button.addEventListener('click', function (e) {
+                            e.preventDefault();
+                            const userId = e.target.getAttribute('data-user-id');
+                            handleButtonClick(userId);
+                        });
+                        userList.appendChild(listItem);
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        });
+
+<!--        fetch('/api/user-chat-rooms/')-->
+<!--    .then(response => {-->
+<!--        console.log("res",response)-->
+<!--    })-->
+<!--    .catch(error => console.error('Error:', error));-->
+
+
+
+
+
+        // Function to get CSRF token from cookies
+        function getCookie(name) {
+            var cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                var cookies = document.cookie.split(';');
+                for (var i = 0; i < cookies.length; i++) {
+                    var cookie = cookies[i].trim();
+                    // Does this cookie string begin with the name we want?
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+
+</body>
+{% endblock %}

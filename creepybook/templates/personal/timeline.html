@@ -1,0 +1,181 @@
+{% extends 'landing/base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    {% csrf_token %}
+    <div class="row">
+        <div class="col-md-3">
+            <div class="profile-picture">
+                {% if profile.profile_picture %}
+                    <img width="100rem" style="border-radius:50%" src="{{ profile.profile_picture }}" alt="{{ user.username }}'s Profile Picture">
+                {% else %}
+                    <div class="profile-picture-placeholder">
+                        <i class="fas fa-user-circle fa-7x text-secondary"></i>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-md-9">
+            <h1>{{ fetchedUser.username }}</h1>
+            {% if profile %}
+
+                <p>{{ profile.bio }}</p>
+                <p>Birthdate: {{ profile.birthdate }}</p>
+                <p><a href="{{ profile.website }}">{{ profile.website }}</a></p>
+
+
+            {% else %}
+                <p>No profile information available.</p>
+            {% endif %}
+
+            {% if is_own_profile %}
+                <a href="/profile/update/{{user.username}}" class="btn btn-dark">Edit Profile</a>
+            {% endif %}
+        </div>
+    </div>
+
+   <h1 class="mt-5">Posts</h1>
+
+    <!-- Posts section -->
+    {% for post in posts %}
+    <div class="card mb-4 mt-4" style="width: 50vw;">
+        <div class="card-header">
+            <span>{{ post.user.username }}</span>
+        </div>
+
+        <div class="card-body">
+            {% if post.media|length > 0 %}
+            <div id="carouselExample{{forloop.counter0}}" class="carousel slide" data-ride="carousel">
+                <div class="carousel-inner">
+                    {% for media in post.media %}
+                    <div class="carousel-item{% if forloop.first %} active{% endif %} text-center">
+                        <img src="{{ media.file.url }}" width="auto" height="300px" alt="Media">
+                    </div>
+                    {% endfor %}
+                </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#carouselExample{{forloop.counter0}}" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" style="background-color:grey; border-radius:5px" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#carouselExample{{forloop.counter0}}" data-bs-slide="next">
+                    <span style="background-color:grey; border-radius:5px" class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+            </div>
+            {% endif %}
+            <p class="mt-5 ml-4 h4">{{ post.content }}</p>
+        </div>
+        <ul class="list-group list-group-flush ">
+            <li class="list-group-item d-flex gap-3">
+                 <button class="btn btn-danger like-button " data-post-id="{{ post.id }}">
+                    <i class="fas fa-thumbs-up"></i> {{ post.numLikes }} Likes
+                </button>
+               <form class="comment-form" data-post-id="{{ post.id }}">
+        {% csrf_token %}
+        <div class="mb-3">
+            <input type="text" class="form-control" placeholder="Add a comment..." name="content">
+        </div>
+        <button type="submit" class="btn btn-outline-primary">
+            <i class="fas fa-comment"></i> Comment
+        </button>
+    </form>
+
+            </li>
+            <li class="list-group-item">
+                <ul class="list-unstyled">
+                    {% for comment in post.comments %}
+                    <li>{{ comment.user.username }}: {{ comment.content }}</li>
+                    {% endfor %}
+                </ul>
+            </li>
+        </ul>
+    </div>
+    {% endfor %}
+</div>
+
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+     $(document).ready(function () {
+    $('.comment-form').on('submit', function (e) {
+        e.preventDefault();
+
+        var form = $(this);
+        var postId = form.data('post-id');
+        var content = form.find('input[name="content"]').val();
+
+        $.ajax({
+            type: 'POST',
+            url: `/comment/${postId}/`,
+            data: {
+                content: content,
+                user: {{user.id}},
+                post: postId
+
+            },
+             headers: {
+        "X-CSRFToken": getCookie("csrftoken") // Get the CSRF token from cookies
+    },
+            success: function (data) {
+                // Handle success, e.g., update the comment count or display the new comment.
+                console.log('Comment created:', data);
+                // You can update the UI here as needed.
+                location.reload();
+            },
+            error: function (xhr, errmsg, err) {
+                // Handle error, if any.
+                console.log('Error:', err, errmsg, xhr);
+            },
+        });
+    });
+});
+
+    $(document).ready(function () {
+        $(".like-button").click(function () {
+            const postId = $(this).data("post-id");
+
+            // Retrieve the CSRF token from the HTML
+            const csrfToken = $("input[name=csrfmiddlewaretoken]").val();
+
+            // Send a POST request to the like API endpoint with CSRF token in headers
+            $.ajax({
+                type: "POST",
+                url: `/like/${postId}/`,
+                dataType: "json",
+                data: {
+                    user: {{user.id}},
+                    post: postId
+                },
+
+               headers: {
+        "X-CSRFToken": getCookie("csrftoken") // Get the CSRF token from cookies
+    },
+                success: function (data) {
+                    // Update the likes count and button appearance
+                    location.reload();
+                },
+                error: function (error) {
+                    console.error("Error:", error);
+                },
+            });
+        });
+    });
+
+    function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+        var cookies = document.cookie.split(";");
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = cookies[i].trim();
+            // Check if the cookie name matches the CSRF token name (default is "csrftoken")
+            if (cookie.substring(0, name.length + 1) === name + "=") {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+
+{% endblock %}
